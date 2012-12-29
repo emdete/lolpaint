@@ -81,6 +81,81 @@ __version__ = '1.0'
 
 from serpaint import LolShield
 
+class PyGameShield(LolShield):
+	def __init__(self, port, baudrate, **kwargs):
+		super(PyGameShield, self).__init__(port=port, baudrate=baudrate, **kwargs)
+		# Premade surface the size of the lolshield, that will ultimately have
+		# its data sampled and sent to the lolshield:
+		self.surface = None
+		self.lol_surface = None
+
+	@classmethod
+	def calc_multiple(clazz, multiple):
+		'''
+		Calculate a window size that is a multiple of the size of a lolshield.
+		'''
+		return map(lambda n: n * multiple, (LolShield.width, LolShield.height, ))
+
+	def set_surface(self, surface):
+		'''
+		Set the surface that will have it's pixels sent to the lolshield.
+		It needs to be the same aspect ratio as the lolshield, but can be a multiple
+		of the resolution.
+		'''
+		self.surface = surface
+		surfWidth, surfHeight = self.surface.get_size()
+		# Make sure surface width and height are a power of the lolshield
+		# width & height:
+		if surfWidth % LolShield.width:
+			raise Exception('Passed in surface width must be multiple of %s, currently is: %s'% LolShield.width,surfWidth)
+		if surfHeight % LolShield.height:
+			raise Exception('Passed in surface width must be multiple of %s, currently is: %s'% LolShield.height,surfHeight)
+		# Make sure that the surface aspect ratio is the same as the lolshield:
+		if surfWidth / LolShield.width != surfHeight / LolShield.height:
+			raise Exception('Surface aspect ratio must match that of lolshield: %sx%s. Is currently %sx%s'% (
+				LolShield.width,
+				LolShield.height,
+				surfWidth,
+				surfHeight,
+				))
+		self.lol_surface = pygame.Surface((LolShield.width, LolShield.height))
+
+	def update(self, data=None):
+		'''
+		Update the data to be sent to the Arduino/lolshield.
+		Should be executed every loop.
+
+		data : str | list : Optional: By default will use self.surface, but instead
+			can bypass it and send in direct data if any is provided. Furthermore,
+			there is built in test data: If the string 'test' is passed in, it
+			will light up the whole lolshield. Otherwise accepts either a string with
+			126 characters, or a list with 126 single entries. Must be 0 or 1 int
+			/ string values ineither case.
+		'''
+		# Send the data to the Arduino/lolshield if it is ready to accept it.
+		# If directly passed in data, use it:
+		if data:
+			if data == 'test':
+				# Set all self.data values to 1 by default, to light up the
+				# whole lolshield, for testing.
+				for x in range(LolShield.width):
+					for y in range(LolShield.height):
+						self.set_pixel(x, y)
+			else:
+				# If data is a list, convert it to a string:
+				for x in range(LolShield.width):
+					for y in range(LolShield.height):
+						self.set_pixel(x, y, data[y * LolShield.width + x] == '1')
+		# otherwise process self.surface:
+		else:
+			# First, shrink it to match res of lolshield:
+			smoothscale(self.surface, (LolShield.width, LolShield.height), self.lol_surface)
+			# Now extract value data to send:
+			for x in range(LolShield.width):
+				for y in range(LolShield.height):
+					h, s, v, a, = self.lol_surface.get_at((x, y, ))
+					self.set_pixel(x, y, v >= 50)
+
 # Sample Main Programs:
 if __name__ == '__main__':
 	import pygame
@@ -89,17 +164,17 @@ if __name__ == '__main__':
 	from sys import argv
 
 	def test(repeat, port, baudrate):
-		lolshield = LolShield(port=port, baudrate=int(baudrate))
-		lolshield.update(data='0' * LolShield.width * LolShield.height)
+		lolshield = PyGameShield(port=port, baudrate=int(baudrate))
+		lolshield.update(data='0' * PyGameShield.width * PyGameShield.height)
 		for n in range(repeat):
 			for v in range(2):
-				for y in range(LolShield.height):
-					for x in range(LolShield.width):
+				for y in range(PyGameShield.height):
+					for x in range(PyGameShield.width):
 						lolshield.set_pixel(x, y, v)
 					sleep(0.3)
 			for v in range(2):
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
+				for x in range(PyGameShield.width):
+					for y in range(PyGameShield.height):
 						lolshield.set_pixel(x, y, v)
 					sleep(0.3)
 
@@ -107,27 +182,27 @@ if __name__ == '__main__':
 		'''
 		As the BasicTest sample from the lolshield library
 		'''
-		lolshield = LolShield(port=port, baudrate=int(baudrate))
+		lolshield = PyGameShield(port=port, baudrate=int(baudrate))
 		for n in range(repeat):
-			b = [0, ] * (LolShield.width + 1)
+			b = [0, ] * (PyGameShield.width + 1)
 			while b.pop(-1) != 0x3fff:
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
+				for x in range(PyGameShield.width):
+					for y in range(PyGameShield.height):
 						lolshield.set_pixel(x, y, bool(b[y] & (1 << x)))
 				b.insert(0, (b[0] << 1) | 1)
 			while b.pop(-1) != 0:
 				b.insert(0, (b[0] << 1) & 0x3fff)
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
+				for x in range(PyGameShield.width):
+					for y in range(PyGameShield.height):
 						lolshield.set_pixel(x, y, bool(b[y] & (1 << x)))
 			b = 0
-			for m in range(2 * LolShield.width):
+			for m in range(2 * PyGameShield.width):
 				if b >= 0x3fff or b != 0 and b & 1 == 0:
 					b = (b << 1) & 0x3fff
 				else:
 					b = (b << 1) | 1
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
+				for x in range(PyGameShield.width):
+					for y in range(PyGameShield.height):
 						lolshield.set_pixel(x, y, bool(b & (1 << x)))
 
 
@@ -138,10 +213,10 @@ if __name__ == '__main__':
 		scale = 40
 		pygame.init()
 		# screenSurf Setup
-		screenSurf = pygame.display.set_mode(LolShield.calc_multiple(scale))
+		screenSurf = pygame.display.set_mode(PyGameShield.calc_multiple(scale))
 		pygame.display.set_caption('pylolgraph')
 		clock = pygame.time.Clock()
-		lolshield = LolShield(port=port, baudrate=int(baudrate))
+		lolshield = PyGameShield(port=port, baudrate=int(baudrate))
 		lolshield.set_surface(screenSurf)
 		mx, my = 0, 0
 		looping = True
@@ -166,13 +241,13 @@ if __name__ == '__main__':
 			clock.tick(20)
 		lolshield.update(data='test')
 		sleep(0.3)
-		lolshield.update(data='0' * LolShield.width * LolShield.height)
+		lolshield.update(data='0' * PyGameShield.width * PyGameShield.height)
 
 	def animate_gif(repeat, port, baudrate):
 		'''
 		Read an gif image & copy it to the lolshield.
 		'''
-		lolshield = LolShield(port=port, baudrate=int(baudrate))
+		lolshield = PyGameShield(port=port, baudrate=int(baudrate))
 		for n in range(repeat):
 			# get it from http://www.cibomahto.com/wp-content/uploads/2010/08/ripple.gif
 			lolshield.play(filename='ripple.gif', wait=0.3)

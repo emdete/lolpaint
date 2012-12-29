@@ -94,7 +94,7 @@ class LolShield(Serial):
 
 	def __init__(self, port, baudrate, **kwargs):
 		'''
-		Init the Serial superclass, and setup some default surface data.
+		Init the Serial superclass, and setup some default doublebuffer data.
 		'''
 		super(LolShield, self).__init__(port=port, baudrate=baudrate, **kwargs)
 		self.rtscts = False
@@ -102,49 +102,14 @@ class LolShield(Serial):
 		self.timeout = 1
 		self.writeTimeout = 1
 		self.open()
-		# Premade surface the size of the lolshield, that will ultimately have
-		# its data sampled and sent to the lolshield:
-		self.surface = None
-		self.lol_surface = None
-		self.double = [0, ] * self.height
-
-	@classmethod
-	def calc_multiple(clazz, multiple):
-		'''
-		Calculate a window size that is a multiple of the size of a lolshield.
-		'''
-		return map(lambda n: n * multiple, (LolShield.width, LolShield.height, ))
-
-	def set_surface(self, surface):
-		'''
-		Set the surface that will have it's pixels sent to the lolshield.
-		It needs to be the same aspect ratio as the lolshield, but can be a multiple
-		of the resolution.
-		'''
-		self.surface = surface
-		surfWidth, surfHeight = self.surface.get_size()
-		# Make sure surface width and height are a power of the lolshield
-		# width & height:
-		if surfWidth % LolShield.width:
-			raise Exception('Passed in surface width must be multiple of %s, currently is: %s'% LolShield.width,surfWidth)
-		if surfHeight % LolShield.height:
-			raise Exception('Passed in surface width must be multiple of %s, currently is: %s'% LolShield.height,surfHeight)
-		# Make sure that the surface aspect ratio is the same as the lolshield:
-		if surfWidth / LolShield.width != surfHeight / LolShield.height:
-			raise Exception('Surface aspect ratio must match that of lolshield: %sx%s. Is currently %sx%s'% (
-				LolShield.width,
-				LolShield.height,
-				surfWidth,
-				surfHeight,
-				))
-		self.lol_surface = pygame.Surface((LolShield.width, LolShield.height))
+		self.doublebuffer = [0, ] * self.height
 
 	def set_pixel(self, x, y, v=1):
 		#'''
 		#Set pixel on lolshield to on or off.
 		#'''
 		#v = 1 if v else 0
-		#v1 = 1 if self.double[y] & (1 << x) else 0
+		#v1 = 1 if self.doublebuffer[y] & (1 << x) else 0
 		#if v1 != v:
 			# we have no performance problem so this is more illustrative:
 			b = 0
@@ -155,7 +120,7 @@ class LolShield(Serial):
 			b *= 2
 			b += v
 			self.write(chr(b))
-			self.double[y] ^= (1 << x)
+			self.doublebuffer[y] ^= (1 << x)
 
 	def set_record(self):
 		' start recording (work in progress) '
@@ -212,40 +177,4 @@ class LolShield(Serial):
 					self.set_pixel(col, row, bool(line & (BIT >> col)))
 			if wait:
 				sleep(wait)
-
-	def update(self, data=None):
-		'''
-		Update the data to be sent to the Arduino/lolshield.
-		Should be executed every loop.
-
-		data : str | list : Optional: By default will use self.surface, but instead
-			can bypass it and send in direct data if any is provided. Furthermore,
-			there is built in test data: If the string 'test' is passed in, it
-			will light up the whole lolshield. Otherwise accepts either a string with
-			126 characters, or a list with 126 single entries. Must be 0 or 1 int
-			/ string values ineither case.
-		'''
-		# Send the data to the Arduino/lolshield if it is ready to accept it.
-		# If directly passed in data, use it:
-		if data:
-			if data == 'test':
-				# Set all self.data values to 1 by default, to light up the
-				# whole lolshield, for testing.
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
-						self.set_pixel(x, y)
-			else:
-				# If data is a list, convert it to a string:
-				for x in range(LolShield.width):
-					for y in range(LolShield.height):
-						self.set_pixel(x, y, data[y * LolShield.width + x] == '1')
-		# otherwise process self.surface:
-		else:
-			# First, shrink it to match res of lolshield:
-			smoothscale(self.surface, (LolShield.width, LolShield.height), self.lol_surface)
-			# Now extract value data to send:
-			for x in range(LolShield.width):
-				for y in range(LolShield.height):
-					h, s, v, a, = self.lol_surface.get_at((x, y, ))
-					self.set_pixel(x, y, v >= 50)
 
