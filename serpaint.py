@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-lolpaint.py
+serpaint.py
 
 this is a py library to paint on the lolshield from a pc via usb. there must be
 a receiver installed on the arduino (see below for source). the main idea of
@@ -80,11 +80,9 @@ void loop () {
 __version__ = '1.0'
 
 from serial import Serial
-from pygame.transform import smoothscale
-import sys, os, Image
+from time import sleep
 
-
-class LolShield(Serial):
+class SerialShield(Serial):
 	'''
 	The LolSheild object is a subclass of the Serial object since it piggybacks
 	off of that functionality to transfer paint operations to the lolshield.
@@ -96,13 +94,18 @@ class LolShield(Serial):
 		'''
 		Init the Serial superclass, and setup some default doublebuffer data.
 		'''
-		super(LolShield, self).__init__(port=port, baudrate=baudrate, **kwargs)
+		super(SerialShield, self).__init__(port=port, baudrate=baudrate, **kwargs)
 		self.rtscts = False
 		self.xonxoff = False
 		self.timeout = 1
 		self.writeTimeout = 1
 		self.open()
 		self.doublebuffer = [0, ] * self.height
+
+	def clear(self, v=0):
+		for x in range(self.width):
+			for y in range(self.height):
+				self.set_pixel(x, y, v)
 
 	def set_pixel(self, x, y, v=1):
 		#'''
@@ -113,9 +116,9 @@ class LolShield(Serial):
 		#if v1 != v:
 			# we have no performance problem so this is more illustrative:
 			b = 0
-			b *= LolShield.height
+			b *= SerialShield.height
 			b += y
-			b *= LolShield.width
+			b *= SerialShield.width
 			b += x
 			b *= 2
 			b += v
@@ -139,8 +142,8 @@ class LolShield(Serial):
 		command = ' | '.join((
 			r"mplayer {i} -vf scale={w}:{h} -ss {s} -frames {f} -vo pnm -ao null -quiet".format(
 				i=filename,
-				w=LolShield.width,
-				h=LolShield.height,
+				w=SerialShield.width,
+				h=SerialShield.height,
 				s=0,
 				f=500,
 				),
@@ -151,6 +154,7 @@ class LolShield(Serial):
 		'''
 		Copy gif image to lolshield.
 		'''
+		from Image import open as image_open
 		def ImageSequence(im):
 			ix = 0
 			try:
@@ -162,18 +166,18 @@ class LolShield(Serial):
 			except EOFError:
 				return # end of sequence
 		# Open image
-		im = Image.open(filename)
+		im = image_open(filename)
 		# For each frame in the image, convert it to black & white, then into the
 		# LoLShield format
-		BIT = 2 << LolShield.width
+		BIT = 2 << SerialShield.width
 		for frame in ImageSequence(im):
 			# Convert to black and white
 			frame = frame.convert("1")
 			buffr = frame.tostring()
 			# For each row in the image
-			for row in range(LolShield.height):
+			for row in range(SerialShield.height):
 				line = (ord(buffr[row*2]) << 8) + ord(buffr[row*2 + 1])
-				for col in range(LolShield.width):
+				for col in range(SerialShield.width):
 					self.set_pixel(col, row, bool(line & (BIT >> col)))
 			if wait:
 				sleep(wait)

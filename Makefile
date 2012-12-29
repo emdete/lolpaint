@@ -5,6 +5,7 @@ all:
 
 run:
 	./demo.py
+	#./pygamedemo.py
 
 dbg:
 
