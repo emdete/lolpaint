@@ -99,7 +99,7 @@ class SerialShield(Serial):
 		self.xonxoff = False
 		self.timeout = 1
 		self.writeTimeout = 1
-		self.open()
+		#self.open()
 		self.doublebuffer = [0, ] * self.height
 
 	def clear(self, v=0):
@@ -111,9 +111,9 @@ class SerialShield(Serial):
 		#'''
 		#Set pixel on lolshield to on or off.
 		#'''
-		#v = 1 if v else 0
-		#v1 = 1 if self.doublebuffer[y] & (1 << x) else 0
-		#if v1 != v:
+		v = 1 if v else 0
+		v1 = 1 if self.doublebuffer[y] & (1 << x) else 0
+		if v1 != v:
 			# we have no performance problem so this is more illustrative:
 			b = 0
 			b *= SerialShield.height
@@ -154,7 +154,7 @@ class SerialShield(Serial):
 		'''
 		Copy gif image to lolshield.
 		'''
-		from Image import open as image_open
+		from PIL.Image import open as image_open
 		def ImageSequence(im):
 			ix = 0
 			try:
@@ -173,7 +173,7 @@ class SerialShield(Serial):
 		for frame in ImageSequence(im):
 			# Convert to black and white
 			frame = frame.convert("1")
-			buffr = frame.tostring()
+			buffr = frame.tobytes()
 			# For each row in the image
 			for row in range(SerialShield.height):
 				line = (ord(buffr[row*2]) << 8) + ord(buffr[row*2 + 1])

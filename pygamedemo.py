@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 from serpaint import SerialShield
 from pygame.transform import smoothscale
@@ -47,6 +47,7 @@ class PyGameShield(SerialShield):
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					looping = False
+					self.clear()
 				elif event.type == MOUSEBUTTONDOWN and event.button == 1: # MOUSEBUTTONUP MOUSEMOTION
 					# when the LMB is pressed move donut position
 					mx, my = event.pos
