@@ -84,9 +84,10 @@ def main(port='/dev/ttyUSB0', baudrate=19200, repeat=3, *args):
 	'''
 	run all three samples.
 	'''
-	animate_gif(repeat, port, baudrate, *args)
-	test(repeat, port, baudrate, *args)
-	basic_test(repeat, port, baudrate, *args) # this single one
+	while True:
+		animate_gif(repeat, port, baudrate, *args)
+		test(repeat, port, baudrate, *args)
+		basic_test(repeat, port, baudrate, *args) # this single one
 
 if __name__ == '__main__':
 	exit(main(*argv[1:]))

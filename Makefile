@@ -4,8 +4,9 @@
 all:
 
 run:
-	./demo.py
+	./serpaint.py
 	#./pygamedemo.py
+	#./demo.py
 
 dbg:
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 '''
 serpaint.py
@@ -182,3 +182,22 @@ class SerialShield(Serial):
 			if wait:
 				sleep(wait)
 
+def main(port='/dev/ttyUSB0', baudrate=19200, repeat=3, *args):
+	from time import sleep
+	from random import shuffle
+	lolshield = SerialShield(port=port, baudrate=int(baudrate))
+	s = list([(n,m) for n in range(lolshield.width) for m in range(lolshield.height)])
+	while True:
+		shuffle(s)
+		for x,y in s:
+			lolshield.set_pixel(x, y, 0)
+		sleep(.5)
+		shuffle(s)
+		for x,y in s:
+			lolshield.set_pixel(x, y, 1)
+		sleep(.5)
+
+if __name__ == '__main__':
+	from sys import argv
+	exit(main(*argv[1:]))
+# vim:tw=0:nowrap
