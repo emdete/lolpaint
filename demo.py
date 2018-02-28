@@ -22,8 +22,8 @@ warenty:
 '''
 __version__ = '1.0'
 
-#from serpaint import SerialShield
-from pygamedemo import PyGameShield as SerialShield
+from serpaint import SerialShield
+#from pygamedemo import PyGameShield as SerialShield
 from time import sleep
 from sys import argv
 
@@ -80,7 +80,7 @@ def animate_gif(repeat, port, baudrate):
 		lolshield.play(filename='ripple.gif', wait=0.3)
 
 
-def main(port='/dev/ttyUSB0', baudrate=19200, repeat=3, *args):
+def main(port='/dev/ttyUSB0', baudrate=19200, repeat=1, *args):
 	'''
 	run all three samples.
 	'''

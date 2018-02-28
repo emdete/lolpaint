@@ -4,9 +4,10 @@
 all:
 
 run:
-	./serpaint.py
+	#./serpaint.py
 	#./pygamedemo.py
 	#./demo.py
+	python2 -u ./pixelflut.py
 
 dbg:
 

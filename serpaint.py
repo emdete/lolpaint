@@ -108,9 +108,9 @@ class SerialShield(Serial):
 				self.set_pixel(x, y, v)
 
 	def set_pixel(self, x, y, v=1):
-		#'''
-		#Set pixel on lolshield to on or off.
-		#'''
+		'''
+		Set pixel on lolshield to on or off.
+		'''
 		v = 1 if v else 0
 		v1 = 1 if self.doublebuffer[y] & (1 << x) else 0
 		if v1 != v:
